@@ -2,7 +2,6 @@ require('base')
 require('highlights')
 require('maps')
 require('plugins')
-require('lspconfig')
 
 local has = vim.fn.has
 local is_mac = has "macunix"
