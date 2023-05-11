@@ -35,3 +35,6 @@ keymap.set('n', '<C-w><down>', '<C-w>-')
 
 -- ToggleTerm
 keymap.set('n', 'tt', ':ToggleTerm<Return>')
+
+-- Terminal
+keymap.set('t', '<Esc>', '<C-\\><C-n>')
