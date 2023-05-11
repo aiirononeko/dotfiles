@@ -31,7 +31,6 @@ packer.startup(function(use)
   }
   use 'kyazdani42/nvim-web-devicons' -- File icons
   use 'nvim-telescope/telescope.nvim'
-  use 'nvim-telescope/telescope-file-browser.nvim'
   use 'windwp/nvim-autopairs'
   use 'windwp/nvim-ts-autotag'
   use { 'numToStr/Comment.nvim',
@@ -51,4 +50,13 @@ packer.startup(function(use)
   use 'lewis6991/gitsigns.nvim'
   use 'dinhhuy258/git.nvim' -- For git blame & browse
   use 'github/copilot.vim'
+
+  use {
+    'nvim-tree/nvim-tree.lua',
+    requires = {
+      'nvim-tree/nvim-web-devicons', -- optional
+    },
+  }
+
+  use 'akinsho/toggleterm.nvim'
 end)
