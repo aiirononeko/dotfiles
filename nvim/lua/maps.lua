@@ -1,5 +1,8 @@
 local keymap = vim.keymap
 
+-- Escape
+keymap.set('i', 'jj', '<Esc>')
+
 keymap.set('n', 'x', '"_x')
 
 -- Increment/decrement
@@ -17,6 +20,9 @@ keymap.set('n', '<C-a>', 'gg<S-v>G')
 
 -- New tab
 keymap.set('n', 'te', ':tabedit')
+-- Move tab
+keymap.set('n', 'tn', ':tabnext<Return>')
+keymap.set('n', 'tp', ':tabprevious<Return>')
 -- Split window
 keymap.set('n', 'ss', ':split<Return><C-w>w')
 keymap.set('n', 'sv', ':vsplit<Return><C-w>w')
@@ -37,4 +43,4 @@ keymap.set('n', '<C-w><down>', '<C-w>-')
 keymap.set('n', 'tt', ':ToggleTerm<Return>')
 
 -- Terminal
-keymap.set('t', '<Esc>', '<C-\\><C-n>')
+keymap.set('t', '<esc>', '<C-\\><C-n>')
