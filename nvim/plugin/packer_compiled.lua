@@ -224,6 +224,11 @@ _G.packer_plugins = {
     path = "/Users/ryotakatada/.local/share/nvim/site/pack/packer/start/toggleterm.nvim",
     url = "https://github.com/akinsho/toggleterm.nvim"
   },
+  ["vim-prisma"] = {
+    loaded = true,
+    path = "/Users/ryotakatada/.local/share/nvim/site/pack/packer/start/vim-prisma",
+    url = "https://github.com/prisma/vim-prisma"
+  },
   ["zen-mode.nvim"] = {
     loaded = true,
     path = "/Users/ryotakatada/.local/share/nvim/site/pack/packer/start/zen-mode.nvim",

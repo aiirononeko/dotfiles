@@ -79,6 +79,27 @@ nvim_lsp.tsserver.setup {
   capabilities = capabilities
 }
 
+nvim_lsp.prismals.setup {
+  on_attach = on_attach,
+  filetypes = { "prisma" },
+  capabilities = capabilities
+}
+
+nvim_lsp.terraformls.setup {
+  on_attach = on_attach,
+  capabilities = capabilities
+}
+
+nvim_lsp.dockerls.setup {
+  on_attach = on_attach,
+  capabilities = capabilities
+}
+
+nvim_lsp.docker_compose_language_service.setup {
+  on_attach = on_attach,
+  capabilities = capabilities
+}
+
 nvim_lsp.sourcekit.setup {
   on_attach = on_attach,
   capabilities = capabilities,
@@ -123,11 +144,11 @@ nvim_lsp.astro.setup {
 
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
   vim.lsp.diagnostic.on_publish_diagnostics, {
-  underline = true,
-  update_in_insert = false,
-  virtual_text = { spacing = 4, prefix = "●" },
-  severity_sort = true,
-}
+    underline = true,
+    update_in_insert = false,
+    virtual_text = { spacing = 4, prefix = "●" },
+    severity_sort = true,
+  }
 )
 
 -- Diagnostic symbols in the sign column (gutter)
