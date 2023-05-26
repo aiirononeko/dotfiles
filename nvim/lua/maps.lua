@@ -44,6 +44,3 @@ keymap.set('n', 'tt', ':ToggleTerm<Return>')
 
 -- Terminal
 keymap.set('t', '<esc>', '<C-\\><C-n>')
-
--- Buffer
-keymap.set('n', 'bb', ':tabnew<Return>')
