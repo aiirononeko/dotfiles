@@ -1,4 +1,4 @@
-local status, toggleterm = pcall(require, "toggleterm")
+local toggleterm = pcall(require, "toggleterm")
 toggleterm.setup {
   open_mapping = [[<c-t>]],
   direction = 'float',
