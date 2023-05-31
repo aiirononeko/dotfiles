@@ -47,3 +47,6 @@ keymap.set('t', '<esc>', '<C-\\><C-n>')
 
 -- Buffer
 keymap.set('n', 'qq', ':bd<Return>')
+
+-- Current Directory
+keymap.set('n', 'cd', ':echo expand("%:p")<Return>')
