@@ -52,12 +52,12 @@ packer.startup(function(use)
   use 'dinhhuy258/git.nvim' -- For git blame & browse
   use 'github/copilot.vim'
 
-  use {
-    'nvim-tree/nvim-tree.lua',
-    requires = {
-      'nvim-tree/nvim-web-devicons', -- optional
-    },
-  }
+  -- use {
+  --   'nvim-tree/nvim-tree.lua',
+  --   requires = {
+  --     'nvim-tree/nvim-web-devicons', -- optional
+  --   },
+  -- }
 
   use 'akinsho/toggleterm.nvim'
 
