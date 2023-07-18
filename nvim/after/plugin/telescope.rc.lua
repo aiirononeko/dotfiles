@@ -17,6 +17,7 @@ telescope.setup {
       },
     },
     file_ignore_patterns = { "node_modules" },
+    initial_mode = "normal",
   },
   extensions = {
     file_browser = {
@@ -47,11 +48,14 @@ vim.keymap.set('n', ';f',
   function()
     builtin.find_files({
       no_ignore = false,
-      hidden = true
+      hidden = true,
+      initial_mode = "insert",
     })
   end)
 vim.keymap.set('n', ';r', function()
-  builtin.live_grep()
+  builtin.live_grep({
+    initial_mode = "insert",
+  })
 end)
 vim.keymap.set('n', '\\\\', function()
   builtin.buffers()
@@ -60,7 +64,9 @@ vim.keymap.set('n', ';t', function()
   builtin.help_tags()
 end)
 vim.keymap.set('n', ';;', function()
-  builtin.resume()
+  builtin.resume({
+    initial_mode = "insert",
+  })
 end)
 vim.keymap.set('n', ';e', function()
   builtin.diagnostics()
