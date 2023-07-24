@@ -3,8 +3,7 @@ import:
 
 font:
   normal:
-    family: Hack Nerd Font
-    style: Regular
+    family: MesloLGS NF
   size: 16.0
   offset:
     x: 1
