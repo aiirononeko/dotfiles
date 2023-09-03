@@ -3,6 +3,8 @@ if status is-interactive
   eval (/opt/homebrew/bin/brew shellenv)
 end
 
+alias vim='nvim'
+
 # View
 set -g theme_display_date yes
 set -g theme_date_format "+%F %H:%M"
