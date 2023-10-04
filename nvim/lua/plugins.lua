@@ -62,4 +62,6 @@ packer.startup(function(use)
   use 'akinsho/toggleterm.nvim'
 
   use 'prisma/vim-prisma' -- prisma syntax highlight
+
+  use 'mustache/vim-mustache-handlebars' -- handlebars syntax highlight
 end)
