@@ -16,28 +16,17 @@ set -g theme_color_scheme dark
 # Setting
 ## Peco
 set fish_plugins theme peco
+
 function fish_user_key_bindings
   bind \cw peco_select_history
 end
+
 set GHQ_SELECTOR peco
 set -gx VOLTA_HOME "$HOME/.volta"
 set -gx PATH "$VOLTA_HOME/bin" $PATH
 
-# pnpm
-set -gx PNPM_HOME "/Users/ryotakatada/Library/pnpm"
-if not string match -q -- $PNPM_HOME $PATH
-  set -gx PATH "$PNPM_HOME" $PATH
-end
-# pnpm end
-
 # Alias
 ## Git
-alias g='git'
-alias gb='git branch'
-alias gc='git commit'
-alias gc='git checkout'
-alias ga='git add'
-alias gp='git push'
 alias gl='git log --oneline --graph --decorate --all'
 
 ## Lazygit
@@ -47,4 +36,3 @@ alias lg='lazygit'
 alias dc='docker compose'
 alias dcu='docker compose up'
 alias dce='docker compose exec'
-
