@@ -20,6 +20,7 @@ require("lazy").setup({
     { "LazyVim/LazyVim", import = "lazyvim.plugins", opts = {
       colorscheme = "solarized-osaka",
     } },
+    { import = "lazyvim.plugins.extras.lang.prisma" },
     -- import/override with your plugins
     { import = "plugins" },
   },
