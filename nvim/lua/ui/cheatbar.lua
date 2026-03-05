@@ -55,8 +55,9 @@ local function update_tip_window()
   local width = vim.o.columns
   local text = "  " .. table.concat(pick_tips(2), "  |  ")
   -- 幅に合わせてパディング
-  if #text < width then
-    text = text .. string.rep(" ", width - #text)
+  local display_width = vim.api.nvim_strwidth(text)
+  if display_width < width then
+    text = text .. string.rep(" ", width - display_width)
   end
   vim.api.nvim_buf_set_lines(tip_buf, 0, -1, false, { text })
 end
@@ -104,3 +105,11 @@ vim.api.nvim_create_autocmd("VimResized", {
 -- 30秒ごとにヒントを入れ替え
 local timer = vim.uv.new_timer()
 timer:start(30000, 30000, vim.schedule_wrap(update_tip_window))
+
+vim.api.nvim_create_autocmd("VimLeavePre", {
+  once = true,
+  callback = function()
+    timer:stop()
+    timer:close()
+  end,
+})

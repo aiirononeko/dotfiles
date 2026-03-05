@@ -1,23 +1,18 @@
+local sign_defs = {
+  add          = { text = "▎" },
+  change       = { text = "▎" },
+  delete       = { text = "" },
+  topdelete    = { text = "" },
+  changedelete = { text = "▎" },
+  untracked    = { text = "▎" },
+}
+
 return {
   "lewis6991/gitsigns.nvim",
   event = { "BufReadPre", "BufNewFile" },
   opts = {
-    signs = {
-      add          = { text = "▎" },
-      change       = { text = "▎" },
-      delete       = { text = "" },
-      topdelete    = { text = "" },
-      changedelete = { text = "▎" },
-      untracked    = { text = "▎" },
-    },
-    signs_staged = {
-      add          = { text = "▎" },
-      change       = { text = "▎" },
-      delete       = { text = "" },
-      topdelete    = { text = "" },
-      changedelete = { text = "▎" },
-      untracked    = { text = "▎" },
-    },
+    signs = sign_defs,
+    signs_staged = sign_defs,
     current_line_blame = false,
     on_attach = function(bufnr)
       local gs = package.loaded.gitsigns

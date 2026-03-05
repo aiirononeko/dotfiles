@@ -5,8 +5,10 @@ vim.api.nvim_create_autocmd("VimEnter", {
   group = startup_group,
   once = true,
   callback = function()
+    -- ファイル引数がある場合はツリーを自動で開かない
+    if vim.fn.argc() > 0 then return end
+
     vim.schedule(function()
-      -- 起動直後でも open_files_in_last_window が正しく効くように現在窓を記録
       local ok, utils = pcall(require, "neo-tree.utils")
       if ok then
         local tabid = vim.api.nvim_get_current_tabpage()
