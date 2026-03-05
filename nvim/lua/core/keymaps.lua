@@ -18,6 +18,7 @@ local descriptions = {
   grep = { "テキスト検索", "Live grep" },
   buffers = { "バッファ一覧", "Find buffers" },
   tree = { "ファイルツリー切替", "Toggle file tree" },
+  lazygit = { "LazyGit 起動", "Open LazyGit" },
   lang = { "説明を英語に切替", "Switch to Japanese" },
 }
 
@@ -39,6 +40,7 @@ local function apply_descriptions()
     { "<leader>g", desc = desc("grep") },
     { "<leader>b", desc = desc("buffers") },
     { "<leader>e", desc = desc("tree") },
+    { "<leader>gg", desc = desc("lazygit") },
     { "<leader>?", desc = desc("lang") },
   })
 end
