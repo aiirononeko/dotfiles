@@ -27,7 +27,7 @@ require("lazy").setup({
       "MunifTanjim/nui.nvim",
     },
     keys = {
-      { "<leader>e", "<cmd>Neotree toggle<CR>", desc = "Toggle file tree" },
+      { "<leader>e", "<cmd>Neotree toggle<CR>", desc = "ファイルツリー切替" },
     },
     opts = {
       close_if_last_window = true,
@@ -56,9 +56,9 @@ require("lazy").setup({
     "echasnovski/mini.pick",
     version = false,
     keys = {
-      { "<leader>f", function() require("mini.pick").builtin.files() end, desc = "Find files" },
-      { "<leader>g", function() require("mini.pick").builtin.grep_live() end, desc = "Live grep" },
-      { "<leader>b", function() require("mini.pick").builtin.buffers() end, desc = "Find buffers" },
+      { "<leader>f", function() require("mini.pick").builtin.files() end, desc = "ファイル検索" },
+      { "<leader>g", function() require("mini.pick").builtin.grep_live() end, desc = "テキスト検索" },
+      { "<leader>b", function() require("mini.pick").builtin.buffers() end, desc = "バッファ一覧" },
     },
     opts = {
       window = {

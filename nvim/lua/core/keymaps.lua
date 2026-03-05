@@ -3,68 +3,75 @@ vim.g.maplocalleader = " "
 
 local map = vim.keymap.set
 
--- jj でノーマルモードに戻る
-map("i", "jj", "<ESC>", { desc = "Exit insert mode" })
+-- 説明文の定義 (日本語 / English)
+local descriptions = {
+  jj = { "インサートモード解除", "Exit insert mode" },
+  win_h = { "← ウィンドウ移動", "Move to left window" },
+  win_j = { "↓ ウィンドウ移動", "Move to lower window" },
+  win_k = { "↑ ウィンドウ移動", "Move to upper window" },
+  win_l = { "→ ウィンドウ移動", "Move to right window" },
+  nohl = { "検索ハイライト消去", "Clear search highlight" },
+  quit = { "閉じる", "Quit" },
+  save = { "保存", "Save" },
+  savequit = { "保存して閉じる", "Save and quit" },
+  files = { "ファイル検索", "Find files" },
+  grep = { "テキスト検索", "Live grep" },
+  buffers = { "バッファ一覧", "Find buffers" },
+  tree = { "ファイルツリー切替", "Toggle file tree" },
+  lang = { "説明を英語に切替", "Switch to Japanese" },
+}
 
--- ウィンドウ移動
-map("n", "<C-h>", "<C-w>h", { desc = "Move to left window" })
-map("n", "<C-j>", "<C-w>j", { desc = "Move to lower window" })
-map("n", "<C-k>", "<C-w>k", { desc = "Move to upper window" })
-map("n", "<C-l>", "<C-w>l", { desc = "Move to right window" })
+-- 現在の言語 (1=日本語, 2=English)
+local lang = 1
 
--- 検索ハイライトクリア
-map("n", "<leader>h", "<cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
-
--- フロートコマンドパレット
-local function open_command_palette()
-  local commands = {
-    { key = "q", label = "q  - 閉じる", cmd = "q" },
-    { key = "w", label = "w  - 保存", cmd = "w" },
-    { key = "x", label = "wq - 保存して閉じる", cmd = "wq" },
-  }
-
-  local lines = {}
-  for _, c in ipairs(commands) do
-    table.insert(lines, "  " .. c.label)
-  end
-
-  local width = 24
-  local height = #lines + 2
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "" })
-  vim.api.nvim_buf_set_lines(buf, 1, -1, false, lines)
-  vim.api.nvim_buf_set_lines(buf, #lines + 1, -1, false, { "" })
-
-  local win = vim.api.nvim_open_win(buf, true, {
-    relative = "editor",
-    width = width,
-    height = height,
-    col = math.floor((vim.o.columns - width) / 2),
-    row = math.floor((vim.o.lines - height) / 2),
-    style = "minimal",
-    border = "rounded",
-    title = " Command ",
-    title_pos = "center",
-  })
-
-  vim.bo[buf].bufhidden = "wipe"
-  vim.bo[buf].modifiable = false
-
-  local function close()
-    if vim.api.nvim_win_is_valid(win) then
-      vim.api.nvim_win_close(win, true)
-    end
-  end
-
-  for _, c in ipairs(commands) do
-    vim.keymap.set("n", c.key, function()
-      close()
-      vim.cmd(c.cmd)
-    end, { buffer = buf, nowait = true })
-  end
-
-  vim.keymap.set("n", "<Esc>", close, { buffer = buf, nowait = true })
-  vim.keymap.set("n", "<leader>", close, { buffer = buf, nowait = true })
+local function desc(key)
+  return descriptions[key][lang]
 end
 
-map("n", "<leader><leader>", open_command_palette, { desc = "Command palette" })
+local function apply_descriptions()
+  local wk = require("which-key")
+  wk.add({
+    { "<leader>h", desc = desc("nohl") },
+    { "<leader>qq", desc = desc("quit") },
+    { "<leader>w", desc = desc("save") },
+    { "<leader>x", desc = desc("savequit") },
+    { "<leader>f", desc = desc("files") },
+    { "<leader>g", desc = desc("grep") },
+    { "<leader>b", desc = desc("buffers") },
+    { "<leader>e", desc = desc("tree") },
+    { "<leader>?", desc = desc("lang") },
+  })
+end
+
+local function toggle_lang()
+  lang = lang == 1 and 2 or 1
+  apply_descriptions()
+  vim.notify(lang == 1 and "日本語に切替" or "Switched to English", vim.log.levels.INFO)
+end
+
+-- jj でノーマルモードに戻る
+map("i", "jj", "<ESC>", { desc = desc("jj") })
+
+-- ウィンドウ移動
+map("n", "<C-h>", "<C-w>h", { desc = desc("win_h") })
+map("n", "<C-j>", "<C-w>j", { desc = desc("win_j") })
+map("n", "<C-k>", "<C-w>k", { desc = desc("win_k") })
+map("n", "<C-l>", "<C-w>l", { desc = desc("win_l") })
+
+-- 検索ハイライトクリア
+map("n", "<leader>h", "<cmd>nohlsearch<CR>", { desc = desc("nohl") })
+
+-- ファイル操作
+map("n", "<leader>qq", "<cmd>q<CR>", { desc = desc("quit") })
+map("n", "<leader>w", "<cmd>w<CR>", { desc = desc("save") })
+map("n", "<leader>x", "<cmd>wq<CR>", { desc = desc("savequit") })
+
+-- 言語トグル
+map("n", "<leader>?", toggle_lang, { desc = desc("lang") })
+
+-- which-key 読み込み後に日本語の説明を適用
+vim.api.nvim_create_autocmd("User", {
+  pattern = "VeryLazy",
+  once = true,
+  callback = apply_descriptions,
+})
