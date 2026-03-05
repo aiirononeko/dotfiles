@@ -12,6 +12,7 @@ local descriptions = {
   win_l = { "→ ウィンドウ移動", "Move to right window" },
   nohl = { "検索ハイライト消去", "Clear search highlight" },
   quit = { "閉じる", "Quit" },
+  quit_force = { "保存せず閉じる", "Quit without saving" },
   save = { "保存", "Save" },
   savequit = { "保存して閉じる", "Save and quit" },
   files = { "ファイル検索", "Find files" },
@@ -36,6 +37,7 @@ local function apply_descriptions()
   wk.add({
     { "<leader>h", desc = desc("nohl") },
     { "<leader>qq", desc = desc("quit") },
+    { "<leader>qa", desc = desc("quit_force") },
     { "<leader>w", desc = desc("save") },
     { "<leader>x", desc = desc("savequit") },
     { "<leader>f", desc = desc("files") },
@@ -131,6 +133,7 @@ map("n", "<leader>h", "<cmd>nohlsearch<CR>", { desc = desc("nohl") })
 
 -- ファイル操作
 map("n", "<leader>qq", "<cmd>q<CR>", { desc = desc("quit") })
+map("n", "<leader>qa", "<cmd>q!<CR>", { desc = desc("quit_force") })
 map("n", "<leader>w", "<cmd>w<CR>", { desc = desc("save") })
 map("n", "<leader>x", "<cmd>wq<CR>", { desc = desc("savequit") })
 
