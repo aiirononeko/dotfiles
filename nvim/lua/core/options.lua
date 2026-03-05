@@ -1,3 +1,7 @@
+-- netrw を無効化 (neo-tree / telescope-file-browser を使用)
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
 local opt = vim.opt
 
 -- 行番号

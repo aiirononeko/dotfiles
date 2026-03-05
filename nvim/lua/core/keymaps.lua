@@ -16,6 +16,7 @@ local descriptions = {
   save = { "保存", "Save" },
   savequit = { "保存して閉じる", "Save and quit" },
   files = { "ファイル検索", "Find files" },
+  files_tree = { "ファイルツリー", "File tree" },
   grep = { "テキスト検索", "Live grep" },
   buffers = { "バッファ一覧", "Find buffers" },
   tree = { "ファイルツリー切替", "Toggle file tree" },
@@ -48,6 +49,7 @@ local function apply_descriptions()
     { "<leader>w", desc = desc("save") },
     { "<leader>x", desc = desc("savequit") },
     { "<leader>f", desc = desc("files") },
+    { "<leader>F", desc = desc("files_tree") },
     { "<leader>g", desc = desc("grep") },
     { "<leader>b", desc = desc("buffers") },
     { "<leader>e", desc = desc("tree") },
@@ -146,7 +148,7 @@ map("n", "<C-l>", "<C-w>l", { desc = desc("win_l") })
 map("n", "<leader>h", "<cmd>nohlsearch<CR>", { desc = desc("nohl") })
 
 -- ファイル操作
-map("n", "<leader>qq", "<cmd>q<CR>", { desc = desc("quit") })
+map("n", "<leader>qq", "<cmd>qa!<CR>", { desc = desc("quit") })
 map("n", "<leader>qa", "<cmd>q!<CR>", { desc = desc("quit_force") })
 map("n", "<leader>w", "<cmd>w<CR>", { desc = desc("save") })
 map("n", "<leader>x", "<cmd>wq<CR>", { desc = desc("savequit") })

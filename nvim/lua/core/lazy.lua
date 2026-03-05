@@ -21,6 +21,7 @@ require("lazy").setup({
   {
     "nvim-neo-tree/neo-tree.nvim",
     branch = "v3.x",
+    lazy = false, -- neo-tree 側が内部で遅延ロードを制御する前提
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-tree/nvim-web-devicons",
@@ -66,29 +67,52 @@ require("lazy").setup({
     },
   },
   {
-    "echasnovski/mini.pick",
-    version = false,
+    "nvim-telescope/telescope.nvim",
+    cmd = "Telescope",
+    dependencies = { "nvim-lua/plenary.nvim" },
     keys = {
-      { "<leader>f", function() require("mini.pick").builtin.files() end, desc = "ファイル検索" },
-      { "<leader>g", function() require("mini.pick").builtin.grep_live() end, desc = "テキスト検索" },
-      { "<leader>b", function() require("mini.pick").builtin.buffers() end, desc = "バッファ一覧" },
+      { "<leader>f", "<cmd>Telescope find_files<CR>", desc = "ファイル検索" },
+      { "<leader>g", "<cmd>Telescope live_grep<CR>", desc = "テキスト検索" },
+      { "<leader>b", "<cmd>Telescope buffers<CR>", desc = "バッファ一覧" },
     },
-    opts = {
-      window = {
-        config = function()
-          local height = math.floor(0.6 * vim.o.lines)
-          local width = math.floor(0.6 * vim.o.columns)
-          return {
-            anchor = "NW",
-            height = height,
-            width = width,
-            row = math.floor(0.5 * (vim.o.lines - height)),
-            col = math.floor(0.5 * (vim.o.columns - width)),
-            border = "rounded",
-          }
-        end,
-      },
-    },
+    config = function()
+      local telescope = require("telescope")
+      local actions = require("telescope.actions")
+
+      telescope.setup({
+        defaults = {
+          layout_config = {
+            horizontal = {
+              width = 0.7,
+              height = 0.7,
+              preview_width = 0.5,
+            },
+          },
+          borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
+          sorting_strategy = "ascending",
+          layout_strategy = "horizontal",
+          prompt_prefix = "  ",
+          selection_caret = " ",
+          mappings = {
+            i = {
+              -- <Esc>/jj でノーマルモードに入れるようにする
+              ["<Esc>"] = false,
+            },
+            n = {
+              ["j"] = actions.move_selection_next,
+              ["k"] = actions.move_selection_previous,
+              ["q"] = actions.close,
+              ["<Esc>"] = actions.close,
+            },
+          },
+        },
+        pickers = {
+          find_files = {
+            hidden = true,
+          },
+        },
+      })
+    end,
   },
   {
     "lewis6991/gitsigns.nvim",
