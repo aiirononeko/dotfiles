@@ -14,7 +14,9 @@ return {
     close_if_last_window = true,
     filesystem = {
       follow_current_file = { enabled = true },
-      use_libuv_file_watcher = true,
+      -- WSL2ではlibuv file watcherが重いため無効化
+      use_libuv_file_watcher = not (vim.fn.has("wsl") == 1
+        or ((vim.uv or vim.loop).os_uname().release or ""):lower():find("microsoft", 1, true)),
       filtered_items = {
         hide_dotfiles = false,
         hide_gitignored = false,

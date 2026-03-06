@@ -26,8 +26,14 @@ opt.signcolumn = "yes"
 opt.wrap = false
 opt.scrolloff = 8
 
--- クリップボード
-opt.clipboard = "unnamedplus"
+-- クリップボード (WSL2では外部プロセスが同期的に走り重いため無効化)
+local uv = vim.uv or vim.loop
+local is_wsl = vim.fn.has("wsl") == 1
+  or ((uv.os_uname().release or ""):lower():find("microsoft", 1, true) ~= nil)
+
+if not is_wsl then
+  opt.clipboard = "unnamedplus"
+end
 
 -- ファイル
 opt.swapfile = false

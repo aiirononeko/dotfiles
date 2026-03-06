@@ -97,9 +97,23 @@ vim.api.nvim_create_autocmd("VimEnter", {
   end,
 })
 
--- リサイズ時に再作成
+-- リサイズ時にサイズ変更のみ (再作成しない)
 vim.api.nvim_create_autocmd("VimResized", {
-  callback = open_tip_window,
+  callback = function()
+    if tip_win and vim.api.nvim_win_is_valid(tip_win) then
+      local width = vim.o.columns
+      vim.api.nvim_win_set_config(tip_win, {
+        relative = "editor",
+        row = vim.o.lines - 3,
+        col = 0,
+        width = width,
+        height = 1,
+      })
+      update_tip_window()
+    else
+      open_tip_window()
+    end
+  end,
 })
 
 -- 30秒ごとにヒントを入れ替え

@@ -5,6 +5,10 @@ local function is_wsl()
   return vim.fn.has("wsl") == 1 or (uv.os_uname().release or ""):lower():find("microsoft", 1, true) ~= nil
 end
 
+local function is_windows_native()
+  return vim.fn.has("win32") == 1 or vim.fn.has("win64") == 1
+end
+
 local function first_available_command(candidates)
   for _, cmd in ipairs(candidates) do
     local bin = cmd[1]
@@ -21,6 +25,12 @@ if is_wsl() then
     { "zenhan.exe", "0" },
     { vim.fn.expand("~/.local/bin/zenhan.exe"), "0" },
     { "im-select.exe", "1033" },
+  })
+elseif is_windows_native() then
+  ime_cmd = first_available_command({
+    { "im-select.exe", "1033" },
+    { vim.fn.expand("~/AppData/Local/Microsoft/WinGet/Links/im-select.exe"), "1033" },
+    { vim.fn.expand("~/.local/bin/im-select.exe"), "1033" },
   })
 elseif vim.fn.has("mac") == 1 then
   ime_cmd = first_available_command({
@@ -51,7 +61,7 @@ if ime_cmd then
 
   vim.api.nvim_create_autocmd("ModeChanged", {
     group = ime_group,
-    pattern = "*:n",
+    pattern = "[it]:n",
     callback = ime_to_english,
   })
 end

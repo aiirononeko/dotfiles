@@ -91,6 +91,15 @@ map("n", "<leader>qa", "<cmd>q!<CR>", { desc = desc("quit_force") })
 map("n", "<leader>w", "<cmd>w<CR>", { desc = desc("save") })
 map("n", "<leader>x", "<cmd>wq<CR>", { desc = desc("savequit") })
 
+-- WSL2用: "+レジスタ経由のクリップボード操作キーマップ
+local uv = vim.uv or vim.loop
+local is_wsl = vim.fn.has("wsl") == 1
+  or ((uv.os_uname().release or ""):lower():find("microsoft", 1, true) ~= nil)
+if is_wsl then
+  map({ "n", "v" }, "<leader>y", '"+y', { desc = "クリップボードにコピー" })
+  map("n", "<leader>p", '"+p', { desc = "クリップボードから貼付け" })
+end
+
 -- 言語トグル
 map("n", "<leader>?", toggle_lang, { desc = desc("lang") })
 

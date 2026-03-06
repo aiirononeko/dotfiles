@@ -1,6 +1,6 @@
 # dotfiles
 
-Neovim の設定ファイルを管理するリポジトリ。
+Neovim + シェル の設定ファイルを管理するリポジトリ。macOS / Linux (WSL2) / Windows に対応。
 
 ## 構成
 
@@ -43,10 +43,31 @@ Leader キーは `<Space>`。
 
 ## セットアップ
 
+### macOS / Linux (WSL2)
+
 ```bash
 git clone https://github.com/aiirononeko/dotfiles.git
 cd dotfiles
 bash install.sh
 ```
 
-`install.sh` は `nvim/` ディレクトリを `~/.config/nvim` にシンボリックリンクで配置します。既存の設定がある場合は自動でバックアップされます。
+`install.sh` は以下をシンボリックリンクで配置します:
+- `nvim/` → `~/.config/nvim`
+- `.zshrc` → `~/.zshrc`
+
+### Windows
+
+```powershell
+git clone https://github.com/aiirononeko/dotfiles.git
+cd dotfiles
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+`install.ps1` は以下をシンボリックリンクで配置します:
+- `nvim/` → `%LOCALAPPDATA%\nvim`
+- `.ps_profile.ps1` → PowerShell プロファイル (`$PROFILE`)
+- `im-select.exe` のインストール（winget 優先、GitHub Releases フォールバック）
+
+> **Note:** シンボリックリンクの作成には「開発者モード」の有効化、または管理者権限での実行が必要です。無効な場合はコピーにフォールバックします。
+
+既存の設定がある場合は自動でバックアップされます。
