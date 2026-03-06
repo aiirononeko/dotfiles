@@ -26,13 +26,30 @@ opt.signcolumn = "yes"
 opt.wrap = false
 opt.scrolloff = 8
 
--- クリップボード (WSL2では外部プロセスが同期的に走り重いため無効化)
+-- クリップボード
+opt.clipboard = "unnamedplus"
+
+-- WSL2: win32yank.exe を使ったクリップボード連携
 local uv = vim.uv or vim.loop
 local is_wsl = vim.fn.has("wsl") == 1
   or ((uv.os_uname().release or ""):lower():find("microsoft", 1, true) ~= nil)
 
-if not is_wsl then
-  opt.clipboard = "unnamedplus"
+if is_wsl then
+  local win32yank = vim.fn.exepath("win32yank.exe")
+  if win32yank ~= "" then
+    vim.g.clipboard = {
+      name = "WslClipboard",
+      copy = {
+        ["+"] = { win32yank, "-i", "--crlf" },
+        ["*"] = { win32yank, "-i", "--crlf" },
+      },
+      paste = {
+        ["+"] = { win32yank, "-o", "--lf" },
+        ["*"] = { win32yank, "-o", "--lf" },
+      },
+      cache_enabled = 0,
+    }
+  end
 end
 
 -- ファイル
