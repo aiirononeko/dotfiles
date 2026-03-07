@@ -158,7 +158,9 @@ function Install-ImSelect {
     $asset = $release.assets | Where-Object { $_.name -match "(\.zip|\.exe)$" } | Select-Object -First 1
   }
   if (-not $asset) {
-    throw "Could not find a downloadable im-select asset in latest release."
+    Write-Warning "Could not find a downloadable im-select asset in latest release. Skipping."
+    Remove-Item -LiteralPath $tmpDir -Recurse -Force
+    return
   }
 
   $downloadPath = Join-Path $tmpDir $asset.name

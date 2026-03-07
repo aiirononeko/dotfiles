@@ -12,6 +12,15 @@ return {
   },
   opts = {
     close_if_last_window = true,
+    sources = { "filesystem", "buffers", "git_status", "claude_sessions" },
+    source_selector = {
+      winbar = true,
+      sources = {
+        { source = "filesystem", display_name = " Files" },
+        { source = "claude_sessions", display_name = " Claude" },
+        { source = "git_status", display_name = "󰊢 Git" },
+      },
+    },
     filesystem = {
       follow_current_file = { enabled = true },
       -- WSL2ではlibuv file watcherが重いため無効化
@@ -43,6 +52,15 @@ return {
           unstaged  = "✗",
           staged    = "✓",
           conflict  = "",
+        },
+      },
+    },
+    claude_sessions = {
+      window = {
+        mappings = {
+          ["<CR>"] = "resume_session",
+          ["d"] = "view_diff",
+          ["r"] = "refresh",
         },
       },
     },
