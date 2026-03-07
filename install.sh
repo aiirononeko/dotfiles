@@ -86,11 +86,39 @@ install_wsl_ime_tool() {
   chmod +x "$zenhan_dst"
 }
 
+install_wsl_clipboard_tool() {
+  mkdir -p "$BIN_DIR"
+
+  if command -v win32yank.exe >/dev/null 2>&1 || [ -x "${BIN_DIR}/win32yank.exe" ]; then
+    echo "win32yank.exe is already installed."
+    return
+  fi
+
+  local win32yank_url="https://github.com/equalsraf/win32yank/releases/download/v0.1.1/win32yank-x64.zip"
+  local win32yank_zip="/tmp/win32yank.zip"
+  local win32yank_dst="${BIN_DIR}/win32yank.exe"
+
+  echo "Installing win32yank.exe (WSL2)..."
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$win32yank_url" -o "$win32yank_zip"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO "$win32yank_zip" "$win32yank_url"
+  else
+    echo "Skipping win32yank.exe install: curl or wget is required."
+    return
+  fi
+
+  unzip -o "$win32yank_zip" win32yank.exe -d "$BIN_DIR"
+  rm -f "$win32yank_zip"
+  chmod +x "$win32yank_dst"
+}
+
 OS="$(uname -s)"
 if [ "$OS" = "Darwin" ]; then
   install_macos_ime_tool
 elif grep -qi microsoft /proc/version 2>/dev/null; then
   install_wsl_ime_tool
+  install_wsl_clipboard_tool
 fi
 
 echo "Done!"

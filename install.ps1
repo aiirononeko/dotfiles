@@ -4,6 +4,8 @@ Set-StrictMode -Version Latest
 $DotfilesDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $NvimSrc = Join-Path $DotfilesDir "nvim"
 $NvimDst = Join-Path $env:LOCALAPPDATA "nvim"
+$AlacSrc = Join-Path $DotfilesDir "alacritty"
+$AlacDst = Join-Path $env:APPDATA "alacritty"
 $ProfileSrc = Join-Path $DotfilesDir ".ps_profile.ps1"
 $ProfileDst = $PROFILE.CurrentUserCurrentHost
 $BinDir = Join-Path $HOME ".local\bin"
@@ -66,7 +68,7 @@ function New-ManagedLink {
 
   $sourceResolved = Resolve-AbsolutePath -Path $Source
   if (-not $sourceResolved) {
-    throw "Missing source for $Name: $Source"
+    throw "Missing source for ${Name}: $Source"
   }
 
   $dstDir = Split-Path -Parent $Destination
@@ -94,7 +96,7 @@ function New-ManagedLink {
 
   try {
     New-Item -ItemType SymbolicLink -Path $Destination -Target $Source -Force | Out-Null
-    Write-Host "Linked $Name: $Destination -> $Source"
+    Write-Host "Linked ${Name}: $Destination -> $Source"
   } catch {
     Write-Warning "Failed to create symlink for $Name. Falling back to copy."
     Write-Warning "Enable Developer Mode or run PowerShell as Administrator to allow symlink creation."
@@ -191,6 +193,7 @@ if (-not $runningOnWindows) {
 }
 
 New-ManagedLink -Source $NvimSrc -Destination $NvimDst -ItemType Directory -Name "nvim"
+New-ManagedLink -Source $AlacSrc -Destination $AlacDst -ItemType Directory -Name "alacritty"
 New-ManagedLink -Source $ProfileSrc -Destination $ProfileDst -ItemType File -Name "PowerShell profile"
 Install-ImSelect
 

@@ -30,6 +30,8 @@ local descriptions = {
   git_prev = { "前の変更箇所", "Previous hunk" },
   claude = { "Claude Code 切替", "Toggle Claude Code" },
   claude_quit = { "Claude Code 終了", "Quit Claude Code" },
+  md_toggle = { "Markdown プレビュー切替", "Toggle Markdown preview" },
+  md_split = { "Markdown 分割プレビュー", "Markdown split preview" },
   lang = { "説明を英語に切替", "Switch to Japanese" },
 }
 
@@ -63,6 +65,8 @@ local function apply_descriptions()
     { "[c", desc = desc("git_prev") },
     { "<leader>cc", desc = desc("claude") },
     { "<leader>cq", desc = desc("claude_quit") },
+    { "<leader>mt", desc = desc("md_toggle") },
+    { "<leader>ms", desc = desc("md_split") },
     { "<leader>?", desc = desc("lang") },
   })
 end
@@ -99,6 +103,10 @@ if is_wsl then
   map({ "n", "v" }, "<leader>y", '"+y', { desc = "クリップボードにコピー" })
   map("n", "<leader>p", '"+p', { desc = "クリップボードから貼付け" })
 end
+
+-- Markdown プレビュー (markview.nvim)
+map("n", "<leader>mt", "<cmd>Markview<CR>", { desc = desc("md_toggle") })
+map("n", "<leader>ms", "<cmd>Markview splitToggle<CR>", { desc = desc("md_split") })
 
 -- 言語トグル
 map("n", "<leader>?", toggle_lang, { desc = desc("lang") })
