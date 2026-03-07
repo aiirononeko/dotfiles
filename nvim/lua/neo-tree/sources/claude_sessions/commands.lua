@@ -9,6 +9,7 @@ local SOURCE_NAME = "claude_sessions"
 M.refresh = utils.wrap(manager.refresh, SOURCE_NAME)
 
 M.resume_session = function(state, node)
+  node = node or (state and state.tree and state.tree:get_node())
   if not node then
     return
   end
@@ -28,6 +29,7 @@ M.resume_session = function(state, node)
 end
 
 M.view_diff = function(state, node)
+  node = node or (state and state.tree and state.tree:get_node())
   if not node then
     return
   end

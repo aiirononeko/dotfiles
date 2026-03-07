@@ -29,7 +29,7 @@ M.default_config = {
   },
   window = {
     mappings = {
-      ["<CR>"] = "resume_session",
+      ["<cr>"] = "resume_session",
       ["d"] = "view_diff",
       ["r"] = "refresh",
     },
