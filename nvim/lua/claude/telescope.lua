@@ -143,7 +143,7 @@ function M.prompts(opts)
     :find()
 end
 
-map("n", "<leader>cs", function()
+map("n", "<leader>cS", function()
   M.sessions()
 end, { desc = "Claude セッション検索" })
 map("n", "<leader>cp", function()

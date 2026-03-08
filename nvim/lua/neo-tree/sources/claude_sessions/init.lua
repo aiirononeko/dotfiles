@@ -101,6 +101,10 @@ M.navigate = function(state, _path, _path_to_reveal, callback, _async)
   state.default_expanded_nodes = { "claude_sessions_root" }
 
   renderer.show_nodes(items, state)
+  if state.enable_source_selector == false and vim.api.nvim_win_is_valid(state.winid) then
+    vim.wo[state.winid].winbar = ""
+    vim.wo[state.winid].statusline = ""
+  end
   state.loading = false
 
   if callback then

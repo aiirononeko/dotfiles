@@ -32,6 +32,7 @@ local descriptions = {
   claude_quit = { "Claude Code 終了", "Quit Claude Code" },
   claude_continue = { "Claude Code 続行", "Continue Claude Code" },
   claude_sessions = { "Claude セッション検索", "Claude Sessions" },
+  claude_sessions_list = { "Claude セッション一覧", "Claude Session List" },
   claude_prompts = { "Claude プロンプト検索", "Claude Prompts" },
   claude_timeline = { "Claude タイムライン", "Claude Timeline" },
   claude_accept = { "Claude Accept/Reject", "Claude Accept/Reject" },
@@ -71,7 +72,8 @@ local function apply_descriptions()
     { "<leader>cc", desc = desc("claude") },
     { "<leader>cq", desc = desc("claude_quit") },
     { "<leader>cr", desc = desc("claude_continue") },
-    { "<leader>cs", desc = desc("claude_sessions") },
+    { "<leader>cs", desc = desc("claude_sessions_list") },
+    { "<leader>cS", desc = desc("claude_sessions") },
     { "<leader>cp", desc = desc("claude_prompts") },
     { "<leader>ct", desc = desc("claude_timeline") },
     { "<leader>ca", desc = desc("claude_accept") },
@@ -87,6 +89,20 @@ local function toggle_lang()
   vim.notify(lang == 1 and "日本語に切替" or "Switched to English", vim.log.levels.INFO)
 end
 
+local function quit_all()
+  local ok_manager, manager = pcall(require, "neo-tree.sources.manager")
+  if ok_manager then
+    pcall(manager.close_all)
+  end
+
+  local ok_claude, claude = pcall(require, "ui.claude_float")
+  if ok_claude and claude.quit then
+    pcall(claude.quit)
+  end
+
+  vim.cmd("qall!")
+end
+
 -- jj でノーマルモードに戻る
 map("i", "jj", "<ESC>", { desc = desc("jj") })
 
@@ -100,7 +116,7 @@ map("n", "<C-l>", "<C-w>l", { desc = desc("win_l") })
 map("n", "<leader>h", "<cmd>nohlsearch<CR>", { desc = desc("nohl") })
 
 -- ファイル操作
-map("n", "<leader>qq", "<cmd>qa!<CR>", { desc = desc("quit") })
+map("n", "<leader>qq", quit_all, { desc = desc("quit") })
 map("n", "<leader>qa", "<cmd>q!<CR>", { desc = desc("quit_force") })
 map("n", "<leader>w", "<cmd>w<CR>", { desc = desc("save") })
 map("n", "<leader>x", "<cmd>wq<CR>", { desc = desc("savequit") })
