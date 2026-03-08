@@ -4,7 +4,7 @@ local common = require("neo-tree.sources.common.components")
 local M = {}
 
 M.icon = function(_config, node, _state)
-  if node.type == "directory" then
+  if node.type == "directory" or node.type == "session" then
     return {
       text = (node:is_expanded() and "" or "") .. " ",
       highlight = highlights.DIRECTORY_ICON,
@@ -22,7 +22,9 @@ end
 M.name = function(_config, node, _state)
   return {
     text = node.name,
-    highlight = node.type == "directory" and highlights.DIRECTORY_NAME or highlights.FILE_NAME,
+    highlight = (node.type == "directory" or node.type == "session")
+        and highlights.DIRECTORY_NAME
+      or highlights.FILE_NAME,
   }
 end
 

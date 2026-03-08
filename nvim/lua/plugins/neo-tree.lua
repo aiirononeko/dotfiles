@@ -58,7 +58,9 @@ return {
     claude_sessions = {
       window = {
         mappings = {
-          ["<cr>"] = "resume_session",
+          ["<cr>"] = "open_or_toggle",
+          ["o"] = "open_file",
+          ["R"] = "resume_session",
           ["d"] = "view_diff",
           ["r"] = "refresh",
         },

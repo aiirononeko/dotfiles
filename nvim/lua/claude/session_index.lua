@@ -227,7 +227,9 @@ local function project_to_key(project)
     return nil
   end
 
-  local key = project:gsub("/", "-")
+  -- Claude stores project directories by replacing path separators and
+  -- punctuation such as "." with "-".
+  local key = project:gsub("[^%w]", "-")
   if key:sub(1, 1) ~= "-" then
     key = "-" .. key
   end
@@ -279,6 +281,9 @@ local function clone_change(change)
     kind = change.kind,
     patch = vim.deepcopy(change.patch),
     original = change.original,
+    content = change.content,
+    old_string = change.old_string,
+    new_string = change.new_string,
     user_modified = change.user_modified,
   }
 end
@@ -435,6 +440,9 @@ local function normalize_change(raw)
     kind = raw.kind or "edit",
     patch = raw.patch,
     original = raw.original,
+    content = raw.content,
+    old_string = raw.old_string,
+    new_string = raw.new_string,
     user_modified = raw.user_modified == true,
   }
 end
@@ -514,6 +522,9 @@ local function build_changes(session)
           kind = kind,
           patch = result.structuredPatch,
           original = result.originalFile,
+          content = result.content,
+          old_string = result.oldString,
+          new_string = result.newString,
           user_modified = result.userModified == true,
         }
       end
