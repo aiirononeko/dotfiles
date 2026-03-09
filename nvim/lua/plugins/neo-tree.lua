@@ -12,6 +12,25 @@ local function git_pull()
   popups.alert("git pull", result)
 end
 
+local function git_push()
+  local events = require("neo-tree.events")
+  local popups = require("neo-tree.ui.popups")
+  local choice = vim.fn.confirm("Are you sure you want to push your changes?", "&Yes\n&No", 1)
+
+  if choice ~= 1 then
+    return
+  end
+
+  local result = vim.fn.systemlist({ "git", "push" })
+  if vim.v.shell_error ~= 0 then
+    popups.alert("ERROR: git push", result)
+    return
+  end
+
+  events.fire_event(events.GIT_EVENT)
+  popups.alert("git push", result)
+end
+
 local AI_COMMIT_TIMEOUT_MS = 15000
 
 local function run_systemlist(cmd)
@@ -25,7 +44,7 @@ end
 
 local function commit_with_message(git_root, initial_msg, events, popups)
   vim.ui.input({
-    prompt = "Commit message: ",
+    prompt = "Commit Message: ",
     default = initial_msg,
   }, function(input)
     if input == nil then
@@ -125,7 +144,7 @@ local function git_aicommit()
   end
 
   local prompt = table.concat({
-    "Generate ONLY a one-line Git commit message in English using imperative mood.",
+    "Generate ONLY a one-line Git commit message in Japanese.",
     "Base it strictly on the staged diff supplied via stdin.",
     "Prefer the actual code changes over filenames.",
     "Do not add quotes, bullets, explanations, or a body.",
@@ -375,6 +394,7 @@ return {
     git_status = {
       commands = {
         git_pull = git_pull,
+        git_push = git_push,
         git_toggle_stage = git_toggle_stage,
         git_aicommit = git_aicommit,
         git_commit = "git_commit",
