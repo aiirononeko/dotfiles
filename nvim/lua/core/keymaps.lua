@@ -28,6 +28,7 @@ local descriptions = {
   git_blame = { "Git Blame", "Git Blame" },
   git_next = { "次の変更箇所", "Next hunk" },
   git_prev = { "前の変更箇所", "Previous hunk" },
+  terminal = { "フローティングターミナル切替", "Toggle floating terminal" },
   claude = { "Claude Code 切替", "Toggle Claude Code" },
   claude_quit = { "Claude Code 終了", "Quit Claude Code" },
   claude_continue = { "Claude Code 続行", "Continue Claude Code" },
@@ -69,6 +70,7 @@ local function apply_descriptions()
     { "<leader>gb", desc = desc("git_blame") },
     { "]c", desc = desc("git_next") },
     { "[c", desc = desc("git_prev") },
+    { "<leader>tt", desc = desc("terminal") },
     { "<leader>cc", desc = desc("claude") },
     { "<leader>cq", desc = desc("claude_quit") },
     { "<leader>cr", desc = desc("claude_continue") },
@@ -98,6 +100,11 @@ local function quit_all()
   local ok_claude, claude = pcall(require, "ui.claude_float")
   if ok_claude and claude.quit then
     pcall(claude.quit)
+  end
+
+  local ok_terminal, terminal = pcall(require, "ui.terminal_float")
+  if ok_terminal and terminal.quit then
+    pcall(terminal.quit)
   end
 
   vim.cmd("qall!")
@@ -133,6 +140,14 @@ end
 -- Markdown プレビュー (markview.nvim)
 map("n", "<leader>mt", "<cmd>Markview<CR>", { desc = desc("md_toggle") })
 map("n", "<leader>ms", "<cmd>Markview splitToggle<CR>", { desc = desc("md_split") })
+
+-- フローティングターミナル
+map({ "n", "t" }, "<leader>tt", function()
+  require("ui.terminal_float").toggle()
+end, { desc = desc("terminal") })
+map({ "n", "t" }, "<C-t>", function()
+  require("ui.terminal_float").toggle()
+end, { desc = desc("terminal") })
 
 -- 言語トグル
 map("n", "<leader>?", toggle_lang, { desc = desc("lang") })
