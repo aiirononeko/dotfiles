@@ -397,13 +397,11 @@ return {
         git_push = git_push,
         git_toggle_stage = git_toggle_stage,
         git_aicommit = git_aicommit,
-        git_commit = "git_commit",
       },
       window = {
         mappings = {
           ["a"] = "git_toggle_stage",
           ["c"] = "git_aicommit",
-          ["mc"] = "git_commit",
           ["p"] = "git_pull",
           ["P"] = "git_push",
         },
