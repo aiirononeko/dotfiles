@@ -20,7 +20,9 @@ The panel is intentionally read-only:
 
 - Source of truth is structured Claude session data under `~/.claude/history.jsonl` and `~/.claude/projects/.../*.jsonl`
 - Harness coverage is intentionally coarse: `ok`, `weak`, `missing`
-- Claude remediation actions are prompt launchers only; edits still happen in Claude Code
+- Current Health is operational and repo-level; Selected Session is intent/detail for the chosen session only
+- Recent Evidence is compact evidence, not a raw activity log
+- Recommended Actions are ordered with the primary intervention first and remain prompt launchers only; edits still happen in Claude Code
 
 ## Verification
 

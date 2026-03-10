@@ -48,6 +48,77 @@ local function summarize_text(text, max_chars)
   return truncate_chars(text, max_chars or 120)
 end
 
+local function first_non_empty(...)
+  for i = 1, select("#", ...) do
+    local value = select(i, ...)
+    if type(value) == "string" then
+      value = trim(value)
+      if value ~= "" then
+        return value
+      end
+    end
+  end
+
+  return nil
+end
+
+local function seems_path_like(text)
+  text = trim(text or "")
+  if text == "" then
+    return false
+  end
+
+  if text:find("/", 1, true) or text:find("\\", 1, true) then
+    return true
+  end
+
+  if text:match("^[%w%._%-]+%.[%w]+$") then
+    return true
+  end
+
+  return false
+end
+
+local function lower_first(text)
+  if type(text) ~= "string" or text == "" then
+    return text
+  end
+  return text:sub(1, 1):lower() .. text:sub(2)
+end
+
+local function normalize_intent_text(text, max_chars)
+  text = summarize_text(text, max_chars or 96)
+  if not text then
+    return nil
+  end
+
+  local replacements = {
+    { "^task:%s*", "" },
+    { "^please%s+", "" },
+    { "^can you%s+", "" },
+    { "^could you%s+", "" },
+    { "^i need you to%s+", "" },
+    { "^help me%s+", "" },
+    { "^work on%s+", "" },
+    { "^investigate%s+", "investigating " },
+    { "^debug%s+", "debugging " },
+    { "^verify%s+", "verifying " },
+    { "^reproduce%s+", "reproducing " },
+  }
+
+  local normalized = text
+  for _, replacement in ipairs(replacements) do
+    normalized = normalized:gsub(replacement[1], replacement[2])
+  end
+
+  normalized = compact_ws(normalized)
+  if normalized == "" then
+    return nil
+  end
+
+  return lower_first(normalized)
+end
+
 local function floor_div(a, b)
   return math.floor(a / b)
 end
@@ -420,12 +491,64 @@ local function collect_verification_commands(cwd)
   return commands
 end
 
-local function coverage_item(label, status, detail)
+local function select_primary_command(commands)
+  local preferred = { verify = 1, test = 2, lint = 3, typecheck = 4, build = 5 }
+  local best = nil
+  local best_rank = math.huge
+
+  for _, command in ipairs(commands or {}) do
+    local rank = preferred[command.kind] or 99
+    if command.derived then
+      rank = rank + 10
+    end
+    if not best or rank < best_rank then
+      best = command
+      best_rank = rank
+    end
+  end
+
+  return best
+end
+
+local function coverage_item(id, label, priority, status, detail, order)
   return {
+    id = id,
     label = label,
+    priority = priority,
     status = status,
     detail = detail,
+    order = order,
   }
+end
+
+local function coverage_priority_rank(priority)
+  if priority == "required" then
+    return 2
+  end
+  return 1
+end
+
+local function coverage_status_rank(status)
+  if status == "missing" then
+    return 3
+  end
+  if status == "weak" then
+    return 2
+  end
+  return 1
+end
+
+local function sort_coverage_items(items)
+  table.sort(items, function(a, b)
+    local a_rank = (coverage_status_rank(a.status) * 10) + coverage_priority_rank(a.priority)
+    local b_rank = (coverage_status_rank(b.status) * 10) + coverage_priority_rank(b.priority)
+    if a_rank == b_rank then
+      return (a.order or 99) < (b.order or 99)
+    end
+    return a_rank > b_rank
+  end)
+
+  return items
 end
 
 local function has_any(paths)
@@ -484,69 +607,193 @@ local function build_harness_coverage(cwd, commands)
     command_kinds[command.kind] = true
   end
 
+  local primary_command = select_primary_command(commands)
+
   local items = {
     coverage_item(
-      "repro verification",
-      #commands > 0 and (commands[1].derived and "weak" or "ok") or "missing",
-      #commands > 0 and summarize_text(commands[1].command, 90) or "no reproducible command detected"
+      "repro_verification",
+      "reproducible verification",
+      "required",
+      primary_command and (primary_command.derived and "weak" or "ok") or "missing",
+      primary_command and summarize_text(primary_command.command, 90) or "no reproducible verification command detected",
+      1
+    ),
+    coverage_item(
+      "failure_visibility",
+      "failure visibility",
+      "required",
+      has_ci and "weak" or "missing",
+      has_ci and "CI/workflow files exist, but local failure surfaces are still thin"
+        or "no structured local failure surface found",
+      2
     ),
     coverage_item(
       "tests",
+      "tests",
+      "required",
       (command_kinds.test or has_tests) and "ok" or "missing",
       (command_kinds.test and "explicit test command detected") or (has_tests and "test files exist but no command was found")
-        or "no test entrypoint detected"
+        or "no test entrypoint detected",
+      3
     ),
     coverage_item(
       "lint",
+      "lint",
+      "required",
       (command_kinds.lint and "ok") or (has_lint_config and "weak") or "missing",
       command_kinds.lint and "lint command detected" or has_lint_config and "lint config exists but no obvious entrypoint"
-        or "no lint entrypoint detected"
+        or "no lint entrypoint detected",
+      4
     ),
     coverage_item(
       "typecheck",
+      "typecheck",
+      "required",
       (command_kinds.typecheck and "ok") or (has_typecheck_config and "weak") or "missing",
       command_kinds.typecheck and "typecheck command detected"
         or has_typecheck_config and "typecheck config exists but no obvious entrypoint"
-        or "no typecheck entrypoint detected"
+        or "no typecheck entrypoint detected",
+      5
     ),
     coverage_item(
       "build",
+      "build",
+      "required",
       command_kinds.build and "ok" or has_build and "weak" or "missing",
       command_kinds.build and "build command detected" or has_build and "repo has install/build scripts only"
-        or "no build entrypoint detected"
+        or "no build entrypoint detected",
+      6
     ),
     coverage_item(
-      "failure visibility",
-      has_ci and "weak" or "missing",
-      has_ci and "CI/workflow files exist, but no structured local status log was found"
-        or "no structured local failure surface found"
-    ),
-    coverage_item(
-      "agent guidance",
-      has_docs and "ok" or "missing",
-      has_docs and "repo-native agent guidance exists" or "no repo-native agent guidance detected"
-    ),
-    coverage_item(
+      "handoff_artifacts",
       "handoff artifacts",
+      "recommended",
       has_plan and "ok" or "missing",
-      has_plan and "repo contains plan/handoff artifacts" or "no repo plan/handoff artifact detected"
+      has_plan and "repo contains plan or handoff artifacts" or "no repo plan or handoff artifact detected",
+      7
     ),
     coverage_item(
+      "agent_guidance",
+      "agent guidance",
+      "recommended",
+      has_docs and "ok" or "missing",
+      has_docs and "repo-native agent guidance exists" or "no repo-native agent guidance detected",
+      8
+    ),
+    coverage_item(
+      "audit_trail",
       "audit trail",
+      "recommended",
       file_exists((uv.os_homedir() or "") .. "/.claude/history.jsonl") and "weak" or "missing",
       file_exists((uv.os_homedir() or "") .. "/.claude/history.jsonl")
           and "global Claude history exists, but repo-local status logging is absent"
-        or "no audit trail detected"
+        or "no audit trail detected",
+      9
     ),
     coverage_item(
+      "safety_boundaries",
       "safety boundaries",
+      "recommended",
       has_docs and "weak" or "missing",
       has_docs and "guidance exists, but explicit sandbox assumptions are thin"
-        or "no repo-local safety boundary artifact detected"
+        or "no repo-local safety boundary artifact detected",
+      10
     ),
   }
 
-  return items
+  return sort_coverage_items(items)
+end
+
+local function scope_hint_from_changes(changes, cwd)
+  if #changes == 0 then
+    return nil
+  end
+
+  local path = shorten_path(changes[1].path, cwd) or changes[1].path
+  local scope = vim.fn.fnamemodify(path, ":t:r")
+  if scope == "" then
+    scope = path
+  end
+
+  scope = compact_ws((scope or ""):gsub("[_%-.]+", " "))
+  if scope == "" then
+    return nil
+  end
+
+  return summarize_text(scope, 40)
+end
+
+local function verification_subject(kind)
+  if kind == "test" then
+    return "tests"
+  end
+  if kind == "lint" then
+    return "lint"
+  end
+  if kind == "typecheck" then
+    return "typecheck"
+  end
+  if kind == "build" then
+    return "build"
+  end
+  return "verification"
+end
+
+local function derive_session_goal(details, scope_hint)
+  if details.latest_verification and details.latest_verification.status == "failed" then
+    return "reproducing failing " .. verification_subject(details.latest_verification.kind)
+  end
+
+  if details.pending_tools[1] and details.pending_tools[1].name == "Bash" then
+    local command = summarize_text(details.pending_tools[1].input and details.pending_tools[1].input.command, 60)
+    if command then
+      return "running " .. command
+    end
+  end
+
+  local normalized = normalize_intent_text(first_non_empty(details.latest_prompt, details.task, details.summary), 96)
+  if normalized and not seems_path_like(normalized) then
+    return normalized
+  end
+
+  if scope_hint then
+    return "working in " .. scope_hint .. " scope"
+  end
+
+  if details.latest_verification and details.latest_verification.command then
+    return "re-running " .. verification_subject(details.latest_verification.kind)
+  end
+
+  return "reviewing selected Claude session"
+end
+
+local function derive_session_summary(details)
+  local summary = normalize_intent_text(first_non_empty(details.summary, details.latest_prompt, details.task), 84)
+  if summary and not seems_path_like(summary) then
+    return summary
+  end
+
+  return details.goal
+end
+
+local function derive_state_transition(details)
+  if details.blocked and details.pending_tools[1] then
+    return "blocked on " .. (details.pending_tools[1].summary or "long-running tool")
+  end
+
+  if details.latest_verification then
+    local command = summarize_text(details.latest_verification.command, 52) or verification_subject(details.latest_verification.kind)
+    if details.latest_verification.status == "failed" then
+      return "failed after " .. command
+    end
+    return "healthy after " .. command
+  end
+
+  if details.pending_tools[1] then
+    return "running " .. (details.pending_tools[1].summary or "agent task")
+  end
+
+  return "no recent state transition recorded"
 end
 
 local function build_session_details(session, cwd)
@@ -569,6 +816,14 @@ local function build_session_details(session, cwd)
     currently_running_task = nil,
     latest_failure = nil,
     pending_tools = {},
+    goal = nil,
+    summary_line = nil,
+    current_blocker = nil,
+    last_action = nil,
+    last_action_ts = nil,
+    latest_anomaly = nil,
+    last_state_transition = nil,
+    current_risk = nil,
   }
 
   if type(session.jsonl_path) ~= "string" or session.jsonl_path == "" or not file_exists(session.jsonl_path) then
@@ -577,6 +832,7 @@ local function build_session_details(session, cwd)
   end
 
   local changes = session_index.get_changes(session.id)
+  local scope_hint = scope_hint_from_changes(changes, cwd)
   details.touched_files_count = #changes
   details.what_changed = infer_what_changed(changes, cwd)
   for i = 1, math.min(5, #changes) do
@@ -606,6 +862,8 @@ local function build_session_details(session, cwd)
             timestamp = event.timestamp or session.last_ts,
             summary = tool_use_summary(block.name, block.input),
           }
+          details.last_action = "started " .. pending_tools[block.id].summary
+          details.last_action_ts = pending_tools[block.id].timestamp
         elseif type(block) == "table" and block.type == "text" then
           local assistant_summary = summarize_text(block.text, 140)
           if assistant_summary and details.summary == session.summary then
@@ -628,6 +886,8 @@ local function build_session_details(session, cwd)
               summary = text,
             }
             details.latest_verification = verification
+            details.last_action = "ran " .. (summarize_text(verification.command, 64) or verification_subject(verification.kind))
+            details.last_action_ts = verification.timestamp
             if verification.status == "ok" then
               details.last_successful_verification_ts = verification.timestamp
             else
@@ -641,6 +901,8 @@ local function build_session_details(session, cwd)
               summary = text or (tool and tool.summary) or "command failed",
               timestamp = event.timestamp or (tool and tool.timestamp) or session.last_ts,
             }
+            details.last_action = "tool error from " .. ((tool and tool.summary) or "task")
+            details.last_action_ts = details.latest_failure.timestamp
             add_blocker(details.blockers, text or (tool and tool.summary) or "tool failure")
           end
 
@@ -661,6 +923,10 @@ local function build_session_details(session, cwd)
     end
   end
 
+  table.sort(details.pending_tools, function(a, b)
+    return (a.timestamp or 0) > (b.timestamp or 0)
+  end)
+
   if not details.currently_running_task then
     details.currently_running_task = details.latest_prompt or details.task
   end
@@ -669,152 +935,398 @@ local function build_session_details(session, cwd)
     add_blocker(details.blockers, details.latest_failure.summary)
   end
 
+  details.goal = derive_session_goal(details, scope_hint)
+  details.summary_line = derive_session_summary(details)
+  details.current_blocker = details.blockers[1]
+  if not details.current_blocker and details.blocked and details.pending_tools[1] then
+    details.current_blocker = "no result yet for " .. (details.pending_tools[1].summary or "long-running tool")
+  end
+  if not details.last_action and details.pending_tools[1] then
+    details.last_action = "running " .. (details.pending_tools[1].summary or "agent task")
+    details.last_action_ts = details.pending_tools[1].timestamp
+  end
+  if not details.last_action then
+    details.last_action = "no recent action recorded"
+  end
+  details.latest_anomaly = (details.latest_failure and (details.latest_failure.summary or details.latest_failure.kind))
+    or (details.blocked and details.pending_tools[1] and ("stuck on " .. (details.pending_tools[1].summary or "long-running tool")))
+    or nil
+  details.last_state_transition = derive_state_transition(details)
+  details.current_risk = details.current_blocker
+    or details.latest_anomaly
+    or (details.pending_tools[1] and "work is still in progress")
+    or "no active intervention needed"
+
   return details
+end
+
+local function coverage_lookup(items)
+  local map = {}
+  for _, item in ipairs(items or {}) do
+    map[item.id] = item
+  end
+  return map
+end
+
+local function collect_coverage_labels(items, predicate)
+  local labels = {}
+  for _, item in ipairs(items or {}) do
+    if predicate(item) then
+      labels[#labels + 1] = item.label
+    end
+  end
+  return labels
+end
+
+local function bullet_lines(items)
+  if #items == 0 then
+    return "- none"
+  end
+  return "- " .. table.concat(items, "\n- ")
+end
+
+local function session_context_label(session)
+  if not session then
+    return "none"
+  end
+  return session.goal or session.summary_line or session.summary or "selected Claude session"
+end
+
+local function build_fix_failing_tests_prompt(snapshot, session, verification)
+  return table.concat({
+    "The observer reports a failing test verification for this repo.",
+    "First reproduce the failure with the exact command below.",
+    "Then identify the root cause, implement the smallest correct fix, preserve existing behavior unless an intentional change is required, and add or adjust regression coverage around the bug.",
+    "Re-run the same command before finishing.",
+    "",
+    "Observed issue:",
+    "- repo: " .. snapshot.cwd,
+    "- session goal: " .. session_context_label(session),
+    "- command: " .. (verification.command or "not captured"),
+    "- failure excerpt: " .. (verification.summary or "not captured"),
+  }, "\n")
+end
+
+local function build_rerun_verification_prompt(snapshot, session, command, observed_issue)
+  return table.concat({
+    "The observer reports a degraded or blocked verification path for this repo.",
+    "First reproduce the observed state with the exact command below.",
+    "If the command fails, isolate the root cause and implement the smallest correct fix.",
+    "Preserve existing behavior unless an intentional change is required, and add or adjust regression coverage when the fix changes behavior.",
+    "Re-run the same command before finishing.",
+    "",
+    "Observed issue:",
+    "- repo: " .. snapshot.cwd,
+    "- overall health: " .. snapshot.health.state,
+    "- selected session: " .. session_context_label(session),
+    "- command: " .. (command or "not captured"),
+    "- observation: " .. (observed_issue or "observer requested targeted verification"),
+  }, "\n")
+end
+
+local function build_missing_harness_prompt(snapshot, session, items)
+  local lines = {
+    "The observer reports missing harness coverage for this repo.",
+    "First inspect the repo's existing scripts and docs.",
+    "Then add only the minimum maintainable harness needed so agent work becomes reproducible and diagnosable.",
+    "Prefer repo-native verification entrypoints, structured failure surfaces, and small local docs over a giant monolithic instruction file.",
+    "Keep scope narrow to the missing items below and verify any new or updated entrypoint before finishing.",
+    "",
+    "Missing harness items:",
+    bullet_lines(items),
+    "",
+    "Observed state:",
+    "- repo: " .. snapshot.cwd,
+    "- overall health: " .. snapshot.health.state,
+    "- selected session: " .. session_context_label(session),
+  }
+
+  if session and session.latest_verification and session.latest_verification.command then
+    lines[#lines + 1] = "- last command seen: " .. session.latest_verification.command
+  end
+
+  return table.concat(lines, "\n")
+end
+
+local function build_weak_harness_prompt(snapshot, session, items)
+  local lines = {
+    "The observer reports weak harness coverage for this repo.",
+    "First inspect the repo's existing scripts, docs, and failure surfaces.",
+    "Then strengthen only the weak areas below with the smallest maintainable change.",
+    "Prefer clearer verification entrypoints, better local failure visibility, and focused repo-native guidance over broad framework work.",
+    "Preserve current behavior unless intentional changes are required, and verify any changed harness before finishing.",
+    "",
+    "Weak harness items:",
+    bullet_lines(items),
+    "",
+    "Observed state:",
+    "- repo: " .. snapshot.cwd,
+    "- overall health: " .. snapshot.health.state,
+    "- selected session: " .. session_context_label(session),
+  }
+
+  if session and session.current_blocker then
+    lines[#lines + 1] = "- current blocker: " .. session.current_blocker
+  end
+
+  return table.concat(lines, "\n")
+end
+
+local function build_blocked_session_prompt(snapshot, session, command)
+  local lines = {
+    "The observer reports a blocked session for this repo.",
+    "First inspect the selected session and reproduce the blockage if a command is available.",
+    "Then unblock it with the smallest correct fix, preserve existing behavior unless an intentional change is required, and verify the unblock before finishing.",
+    "",
+    "Observed issue:",
+    "- repo: " .. snapshot.cwd,
+    "- session goal: " .. session_context_label(session),
+    "- blocker: " .. (session and session.current_blocker or "session is blocked"),
+    "- pending task: " .. (session and session.currently_running_task or "not captured"),
+  }
+
+  if command then
+    lines[#lines + 1] = "- command: " .. command
+  end
+
+  return table.concat(lines, "\n")
 end
 
 local function build_actions(snapshot)
   local actions = {}
   local session = snapshot.session
-  local health = snapshot.health
+  local coverage = coverage_lookup(snapshot.coverage)
+  local primary_repo_command = select_primary_command(snapshot.repo_commands)
+  local rerun_command = session and session.latest_verification and session.latest_verification.command
+    or primary_repo_command and primary_repo_command.command
+  local session_id = session and session.id or nil
 
-  local failing_test = session and session.latest_verification
-  if failing_test and failing_test.kind ~= "test" then
-    failing_test = nil
-  end
-  if failing_test and failing_test.status ~= "failed" then
-    failing_test = nil
-  end
-
-  actions[#actions + 1] = {
-    id = "fix-failing-tests",
-    label = "Fix failing tests with Claude Code",
-    enabled = failing_test ~= nil,
-    detail = failing_test and summarize_text(failing_test.command, 90) or nil,
-    reason = failing_test and nil or "no failing test command detected",
-    session_id = session and session.id or nil,
-    prompt = failing_test and table.concat({
-      "Reproduce the failing tests using the exact command below, identify the root cause, implement the smallest correct fix, preserve existing behavior, and add or adjust regression coverage if behavior changed.",
-      "",
-      "Observed failure:",
-      "- session: " .. session.id,
-      "- summary: " .. session.summary,
-      "- command: " .. failing_test.command,
-      "- failure excerpt: " .. (failing_test.summary or "not captured"),
-    }, "\n") or nil,
-  }
-
-  local rerun_command = session and session.latest_verification and session.latest_verification.command or snapshot.repo_commands[1]
-      and snapshot.repo_commands[1].command
-  actions[#actions + 1] = {
-    id = "rerun-targeted-checks",
-    label = "Re-run targeted checks",
-    enabled = rerun_command ~= nil,
-    detail = rerun_command and summarize_text(rerun_command, 90) or nil,
-    reason = rerun_command and nil or "no targeted command available",
-    session_id = session and session.id or nil,
-    prompt = rerun_command and table.concat({
-      "Re-run the targeted verification command below, inspect the exact outcome, and report whether the harness is healthy, degraded, blocked, or failed.",
-      "If the command fails, isolate the root cause and implement the smallest correct remediation.",
-      "",
-      "Observed state:",
-      "- overall health: " .. health.state,
-      "- selected session: " .. (session and session.summary or "none"),
-      "- command: " .. rerun_command,
-    }, "\n") or nil,
-  }
-
-  local missing = {}
-  local weak = {}
-  for _, item in ipairs(snapshot.coverage) do
-    if item.status == "missing" then
-      missing[#missing + 1] = item.label
-    elseif item.status == "weak" then
-      weak[#weak + 1] = item.label
+  local function add_action(action)
+    if not action or #actions >= 5 then
+      return
     end
+    for _, existing in ipairs(actions) do
+      if existing.id == action.id then
+        return
+      end
+    end
+    actions[#actions + 1] = action
   end
 
-  actions[#actions + 1] = {
-    id = "add-missing-harness",
-    label = "Add missing harness",
-    enabled = #missing > 0,
-    detail = #missing > 0 and table.concat(missing, ", ") or nil,
-    reason = #missing > 0 and nil or "no missing harness items",
-    prompt = #missing > 0 and table.concat({
-      "Add the minimal harness needed for this project to make agent work more reliable.",
-      "Prefer lightweight, maintainable artifacts over a giant monolithic instruction file.",
-      "Create or update repo-native docs, plans, and verification entrypoints only where they materially improve observability or remediation.",
-      "",
-      "Missing harness items:",
-      "- " .. table.concat(missing, "\n- "),
-      "",
-      "Repository context:",
-      "- current repo: " .. snapshot.cwd,
-      "- current health: " .. health.state,
-      "- selected session: " .. (session and session.summary or "none"),
-    }, "\n") or nil,
-  }
+  local function action_command_detail(command)
+    return summarize_text(command, 56) or "command"
+  end
 
-  actions[#actions + 1] = {
-    id = "strengthen-weak-harness",
-    label = "Strengthen weak harness",
-    enabled = #weak > 0,
-    detail = #weak > 0 and table.concat(weak, ", ") or nil,
-    reason = #weak > 0 and nil or "no weak harness items",
-    prompt = #weak > 0 and table.concat({
-      "Strengthen the weak harness areas below without turning this repository into a giant framework.",
-      "Prefer practical, inspectable improvements: better verification entrypoints, clearer failure visibility, and smaller repo-native guidance artifacts.",
-      "",
-      "Weak harness items:",
-      "- " .. table.concat(weak, "\n- "),
-      "",
-      "Current health:",
-      "- state: " .. health.state,
-      "- failing checks: " .. tostring(health.failing_checks_count),
-      "- blocked: " .. tostring(health.blocked),
-    }, "\n") or nil,
-  }
+  local latest_verification = session and session.latest_verification or nil
+  if latest_verification and latest_verification.status == "failed" and latest_verification.kind == "test" then
+    add_action({
+      id = "fix-failing-tests",
+      label = "Reproduce and fix failing tests",
+      primary = true,
+      enabled = true,
+      detail = "Claude: reproduce `" .. action_command_detail(latest_verification.command) .. "`, smallest fix, regression coverage",
+      session_id = session_id,
+      prompt = build_fix_failing_tests_prompt(snapshot, session, latest_verification),
+    })
+  elseif latest_verification and latest_verification.status == "failed" then
+    add_action({
+      id = "fix-blocker",
+      label = "Reproduce and fix blocker",
+      primary = true,
+      enabled = true,
+      detail = "Claude: reproduce `" .. action_command_detail(latest_verification.command) .. "`, smallest fix, preserve behavior",
+      session_id = session_id,
+      prompt = build_rerun_verification_prompt(
+        snapshot,
+        session,
+        latest_verification.command,
+        session.current_blocker or latest_verification.summary
+      ),
+    })
+  elseif session and session.blocked then
+    local blocked_command = session.pending_tools[1] and session.pending_tools[1].input and session.pending_tools[1].input.command
+      or rerun_command
+    add_action({
+      id = "unblock-session",
+      label = "Inspect and unblock session",
+      primary = true,
+      enabled = true,
+      detail = blocked_command and ("Claude: inspect blockage and reproduce `" .. action_command_detail(blocked_command) .. "`")
+        or "Claude: inspect blockage, recover progress, keep scope narrow",
+      session_id = session_id,
+      prompt = build_blocked_session_prompt(snapshot, session, blocked_command),
+    })
+  elseif coverage.repro_verification and coverage.repro_verification.status ~= "ok" then
+    local missing_repro = coverage.repro_verification.status == "missing"
+    add_action({
+      id = missing_repro and "add-verification-command" or "strengthen-verification-command",
+      label = missing_repro and "Add missing verification command" or "Strengthen verification command",
+      primary = true,
+      enabled = true,
+      detail = missing_repro and "Claude: inspect scripts/docs, add repo-native verification entrypoint"
+        or "Claude: tighten the current verification entrypoint and make it reproducible",
+      session_id = session_id,
+      prompt = missing_repro
+        and build_missing_harness_prompt(snapshot, session, { "reproducible verification" })
+        or build_weak_harness_prompt(snapshot, session, { "reproducible verification" }),
+    })
+  elseif rerun_command then
+    add_action({
+      id = "rerun-targeted-verification",
+      label = "Re-run targeted verification",
+      primary = true,
+      enabled = true,
+      detail = "Claude: reproduce `" .. action_command_detail(rerun_command) .. "`, report state, fix only if failing",
+      session_id = session_id,
+      prompt = build_rerun_verification_prompt(snapshot, session, rerun_command, session and session.current_risk or nil),
+    })
+  end
 
-  actions[#actions + 1] = {
+  if coverage.repro_verification and coverage.repro_verification.status ~= "ok" then
+    local missing_repro = coverage.repro_verification.status == "missing"
+    add_action({
+      id = missing_repro and "add-verification-command" or "strengthen-verification-command",
+      label = missing_repro and "Add missing verification command" or "Strengthen verification command",
+      enabled = true,
+      detail = missing_repro and "Claude: inspect scripts/docs, add repo-native verification entrypoint"
+        or "Claude: tighten the current verification entrypoint and document how to run it",
+      session_id = session_id,
+      prompt = missing_repro
+        and build_missing_harness_prompt(snapshot, session, { "reproducible verification" })
+        or build_weak_harness_prompt(snapshot, session, { "reproducible verification" }),
+    })
+  end
+
+  if coverage.failure_visibility and coverage.failure_visibility.status ~= "ok" then
+    local missing_visibility = coverage.failure_visibility.status == "missing"
+    add_action({
+      id = missing_visibility and "add-failure-visibility" or "improve-failure-visibility",
+      label = missing_visibility and "Add local failure visibility" or "Improve local failure visibility",
+      enabled = true,
+      detail = missing_visibility and "Claude: add a small local failure surface for faster diagnosis"
+        or "Claude: strengthen existing failure reporting without widening scope",
+      session_id = session_id,
+      prompt = missing_visibility
+        and build_missing_harness_prompt(snapshot, session, { "failure visibility" })
+        or build_weak_harness_prompt(snapshot, session, { "failure visibility" }),
+    })
+  end
+
+  local targeted = {
+    repro_verification = true,
+    failure_visibility = true,
+  }
+  local missing = collect_coverage_labels(snapshot.coverage, function(item)
+    return item.status == "missing" and not targeted[item.id]
+  end)
+  local weak = collect_coverage_labels(snapshot.coverage, function(item)
+    return item.status == "weak" and not targeted[item.id]
+  end)
+
+  if #missing > 0 then
+    add_action({
+      id = "add-missing-harness",
+      label = "Add missing harness",
+      enabled = true,
+      detail = "Claude: add only the missing repo-native harness items",
+      session_id = session_id,
+      prompt = build_missing_harness_prompt(snapshot, session, missing),
+    })
+  elseif #weak > 0 then
+    add_action({
+      id = "strengthen-weak-harness",
+      label = "Strengthen weak harness",
+      enabled = true,
+      detail = "Claude: strengthen weak harness with minimal, maintainable changes",
+      session_id = session_id,
+      prompt = build_weak_harness_prompt(snapshot, session, weak),
+    })
+  end
+
+  add_action({
     id = "open-session-summary",
-    label = "Open / inspect session summary",
+    label = "Inspect session detail",
     enabled = session ~= nil,
-    detail = session and session.summary or nil,
+    detail = session and (session.summary_line or session.summary) or nil,
     reason = session and nil or "no session available",
     kind = "open_summary",
-  }
+  })
 
   return actions
 end
 
 local function build_health(snapshot)
-  local session = snapshot.session
-  if not session then
-    return {
-      state = "idle",
-      current_task = "no active Claude session",
-      last_successful_verification_ts = nil,
-      failing_checks_count = 0,
-      blocked = false,
-      active_session_count = snapshot.active_session_count,
-    }
+  local active_sessions = snapshot.active_sessions or {}
+  local blocked_count = 0
+  local failing_checks = 0
+  local failed_session_count = 0
+  local degraded_session_count = 0
+  local last_good_ts = nil
+  local blocked_activity = nil
+  local running_activity = nil
+
+  for _, session in ipairs(active_sessions) do
+    failing_checks = failing_checks + (session.failing_checks_count or 0)
+    if session.blocked then
+      blocked_count = blocked_count + 1
+      blocked_activity = blocked_activity or session.currently_running_task or session.goal
+    end
+    if session.pending_tools and session.pending_tools[1] and not running_activity then
+      running_activity = session.pending_tools[1].summary or session.currently_running_task or session.goal
+    end
+    if session.latest_verification and session.latest_verification.status == "failed" then
+      failed_session_count = failed_session_count + 1
+    elseif session.failing_checks_count > 0 or (session.blockers and #session.blockers > 0) then
+      degraded_session_count = degraded_session_count + 1
+    end
+    if session.last_successful_verification_ts and ((not last_good_ts) or session.last_successful_verification_ts > last_good_ts) then
+      last_good_ts = session.last_successful_verification_ts
+    end
+  end
+
+  local required_missing_count = 0
+  local required_weak_count = 0
+  for _, item in ipairs(snapshot.coverage or {}) do
+    if item.priority == "required" and item.status == "missing" then
+      required_missing_count = required_missing_count + 1
+    elseif item.priority == "required" and item.status == "weak" then
+      required_weak_count = required_weak_count + 1
+    end
   end
 
   local state_name = "healthy"
-  if session.blocked then
+  if blocked_count > 0 then
     state_name = "blocked"
-  elseif session.latest_verification and session.latest_verification.status == "failed" then
+  elseif failed_session_count > 0 then
     state_name = "failed"
-  elseif session.failing_checks_count > 0 or #session.blockers > 0 then
+  elseif failing_checks > 0 or degraded_session_count > 0 or required_missing_count > 0 or required_weak_count > 0 then
     state_name = "degraded"
+  elseif snapshot.active_session_count == 0 then
+    state_name = "idle"
+  end
+
+  local activity = "observer idle"
+  if blocked_activity then
+    activity = "stuck on " .. blocked_activity
+  elseif running_activity then
+    activity = "monitoring " .. running_activity
+  elseif snapshot.active_session_count > 0 then
+    activity = "monitoring active agent sessions"
+  elseif required_missing_count > 0 or required_weak_count > 0 then
+    activity = "harness needs intervention"
   end
 
   return {
     state = state_name,
-    current_task = session.currently_running_task or session.task or session.summary,
-    last_successful_verification_ts = session.last_successful_verification_ts,
-    failing_checks_count = session.failing_checks_count,
-    blocked = session.blocked,
+    activity = activity,
+    last_successful_verification_ts = last_good_ts,
+    failing_checks_count = failing_checks,
+    blocked = blocked_count > 0,
+    blocked_session_count = blocked_count,
     active_session_count = snapshot.active_session_count,
+    required_missing_count = required_missing_count,
+    required_weak_count = required_weak_count,
+    next_step = nil,
   }
 end
 
@@ -853,9 +1365,11 @@ local function build_snapshot(opts)
 
   local active_session_count = 0
   local now_ms = os.time() * 1000
+  local active_sessions = {}
   for _, session in ipairs(sessions) do
     if now_ms - session.last_ts <= ACTIVE_SESSION_WINDOW_MS then
       active_session_count = active_session_count + 1
+      active_sessions[#active_sessions + 1] = build_session_details(session, cwd)
     end
   end
 
@@ -868,6 +1382,7 @@ local function build_snapshot(opts)
     repo_commands = repo_commands,
     coverage = coverage,
     active_session_count = active_session_count,
+    active_sessions = active_sessions,
     sessions = sessions,
     selected_session_id = selected_session and selected_session.id or nil,
     session = selected_details,
@@ -875,6 +1390,15 @@ local function build_snapshot(opts)
 
   snapshot.health = build_health(snapshot)
   snapshot.actions = build_actions(snapshot)
+  for _, action in ipairs(snapshot.actions) do
+    if action.enabled and action.kind ~= "open_summary" then
+      snapshot.health.next_step = action.label
+      break
+    end
+  end
+  if not snapshot.health.next_step then
+    snapshot.health.next_step = snapshot.health.state == "healthy" and "No intervention needed" or "Inspect session detail"
+  end
 
   snapshot.signature = table.concat({
     snapshot.selected_session_id or "none",
@@ -884,6 +1408,10 @@ local function build_snapshot(opts)
     selected_details and tostring(selected_details.last_successful_verification_ts or 0) or "0",
     selected_details and tostring(selected_details.latest_verification and selected_details.latest_verification.timestamp or 0)
       or "0",
+    table.concat(vim.tbl_map(function(item)
+      return item.id .. ":" .. item.status
+    end, snapshot.coverage), ","),
+    snapshot.actions[1] and snapshot.actions[1].id or "none",
   }, "|")
 
   return snapshot
