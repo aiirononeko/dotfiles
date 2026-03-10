@@ -49,11 +49,27 @@ local function is_job_running(job_id)
   return ok and type(result) == "table" and result[1] == -1
 end
 
-local function open_claude(cmd)
+local function send_prompt(chan, prompt)
+  if not chan or chan <= 0 or type(prompt) ~= "string" or prompt == "" then
+    return
+  end
+
+  vim.defer_fn(function()
+    if is_job_running(chan) then
+      vim.fn.chansend(chan, prompt)
+      if prompt:sub(-1) ~= "\n" then
+        vim.fn.chansend(chan, "\n")
+      end
+    end
+  end, 120)
+end
+
+local function open_claude(cmd, opts)
   if type(cmd) ~= "table" or #cmd == 0 then
     vim.notify("Claude command must be a non-empty argv list", vim.log.levels.ERROR)
     return nil
   end
+  opts = opts or {}
 
   if not valid_buf(claude_buf) then
     claude_buf = vim.api.nvim_create_buf(false, true)
@@ -64,6 +80,7 @@ local function open_claude(cmd)
 
   local generation = bump_generation()
   claude_chan = vim.fn.termopen(cmd, {
+    cwd = opts.cwd,
     on_exit = function()
       if generation ~= claude_generation then
         return
@@ -82,6 +99,7 @@ local function open_claude(cmd)
   end
 
   vim.cmd("startinsert")
+  send_prompt(claude_chan, opts.prompt)
   return claude_chan
 end
 
@@ -137,6 +155,23 @@ local function claude_resume(session_id)
   return open_claude({ "claude", "--resume", session_id })
 end
 
+local function claude_launch_prompt(prompt, opts)
+  opts = opts or {}
+
+  local cmd = { "claude" }
+  if type(opts.session_id) == "string" and opts.session_id ~= "" then
+    cmd = { "claude", "--resume", opts.session_id }
+  elseif opts.continue_session then
+    cmd = { "claude", "--continue" }
+  end
+
+  claude_quit()
+  return open_claude(cmd, {
+    cwd = opts.cwd,
+    prompt = prompt,
+  })
+end
+
 local function claude_is_active()
   return is_job_running(claude_chan)
 end
@@ -146,6 +181,7 @@ M.quit = claude_quit
 M.new = claude_new
 M.continue = claude_continue
 M.resume = claude_resume
+M.launch_prompt = claude_launch_prompt
 M.is_active = claude_is_active
 
 map("n", "<leader>cc", M.toggle, { desc = "Claude Code 切替" })

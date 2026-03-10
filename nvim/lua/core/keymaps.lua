@@ -37,6 +37,7 @@ local descriptions = {
   claude_prompts = { "Claude プロンプト検索", "Claude Prompts" },
   claude_timeline = { "Claude タイムライン", "Claude Timeline" },
   claude_accept = { "Claude Accept/Reject", "Claude Accept/Reject" },
+  claude_observer = { "Claude Observer", "Claude Observer" },
   md_toggle = { "Markdown プレビュー切替", "Toggle Markdown preview" },
   md_split = { "Markdown 分割プレビュー", "Markdown split preview" },
   lang = { "説明を英語に切替", "Switch to Japanese" },
@@ -79,6 +80,7 @@ local function apply_descriptions()
     { "<leader>cp", desc = desc("claude_prompts") },
     { "<leader>ct", desc = desc("claude_timeline") },
     { "<leader>ca", desc = desc("claude_accept") },
+    { "<leader>co", desc = desc("claude_observer") },
     { "<leader>mt", desc = desc("md_toggle") },
     { "<leader>ms", desc = desc("md_split") },
     { "<leader>?", desc = desc("lang") },
@@ -148,6 +150,10 @@ end, { desc = desc("terminal") })
 map({ "n", "t" }, "<C-t>", function()
   require("ui.terminal_float").toggle()
 end, { desc = desc("terminal") })
+
+map("n", "<leader>co", function()
+  require("ui.claude_observer").toggle()
+end, { desc = desc("claude_observer") })
 
 -- 言語トグル
 map("n", "<leader>?", toggle_lang, { desc = desc("lang") })
