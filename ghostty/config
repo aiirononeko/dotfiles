@@ -1,0 +1,24 @@
+# Font
+font-family = JetBrainsMono Nerd Font
+font-size = 16
+
+# Background: black with transparency
+background = #000000
+background-opacity = 0.5
+background-blur = 20
+
+# Window
+window-padding-x = 8
+window-padding-y = 8
+window-decoration = auto
+
+# Cursor
+cursor-style = block
+cursor-style-blink = true
+
+# Theme
+theme = tokyonight
+
+# Misc
+copy-on-select = clipboard
+confirm-close-surface = false

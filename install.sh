@@ -42,6 +42,9 @@ link_file "${DOTFILES_DIR}/nvim" "$NVIM_CONFIG_DIR" "nvim"
 # --- Oh My Posh theme ---
 link_file "${DOTFILES_DIR}/ohmyposh" "${HOME}/.config/ohmyposh" "ohmyposh"
 
+# --- Ghostty (cmux) ---
+link_file "${DOTFILES_DIR}/ghostty" "${HOME}/.config/ghostty" "ghostty"
+
 # --- zsh ---
 link_file "$ZSHRC_SRC" "$ZSHRC_DST" "zshrc"
 
