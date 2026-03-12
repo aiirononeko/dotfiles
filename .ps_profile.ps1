@@ -88,8 +88,21 @@ if (Get-Module -ListAvailable -Name PSReadLine) {
   }
 }
 
+# --- Oh My Posh (prompt theme) ---
+if (Get-Command "oh-my-posh" -ErrorAction SilentlyContinue) {
+  $ompConfig = Join-Path $HOME ".config\ohmyposh\takuya.omp.json"
+  if (Test-Path -LiteralPath $ompConfig) {
+    oh-my-posh init pwsh --config $ompConfig | Invoke-Expression
+  }
+}
+
 function cc {
   & claude --dangerously-skip-permissions @args
+}
+
+if (Get-Command "eza" -ErrorAction SilentlyContinue) {
+  function ll { & eza -l -g --icons @args }
+  function la { & eza -la -g --icons @args }
 }
 
 if (Get-Command "nvim" -ErrorAction SilentlyContinue) {

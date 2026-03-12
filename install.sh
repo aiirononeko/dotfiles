@@ -39,6 +39,9 @@ link_file() {
 # --- nvim ---
 link_file "${DOTFILES_DIR}/nvim" "$NVIM_CONFIG_DIR" "nvim"
 
+# --- Oh My Posh theme ---
+link_file "${DOTFILES_DIR}/ohmyposh" "${HOME}/.config/ohmyposh" "ohmyposh"
+
 # --- zsh ---
 link_file "$ZSHRC_SRC" "$ZSHRC_DST" "zshrc"
 

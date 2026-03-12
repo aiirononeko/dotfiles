@@ -196,6 +196,11 @@ if (-not $runningOnWindows) {
 
 New-ManagedLink -Source $NvimSrc -Destination $NvimDst -ItemType Directory -Name "nvim"
 New-ManagedLink -Source $AlacSrc -Destination $AlacDst -ItemType Directory -Name "alacritty"
+
+$OmpSrc = Join-Path $DotfilesDir "ohmyposh"
+$OmpDst = Join-Path $HOME ".config\ohmyposh"
+New-ManagedLink -Source $OmpSrc -Destination $OmpDst -ItemType Directory -Name "ohmyposh"
+
 New-ManagedLink -Source $ProfileSrc -Destination $ProfileDst -ItemType File -Name "PowerShell profile"
 Install-ImSelect
 

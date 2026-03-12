@@ -61,9 +61,19 @@ function _fzf_cd_ghq() {
 zle -N _fzf_cd_ghq
 bindkey "^g" _fzf_cd_ghq
 
+# --- Oh My Posh (prompt theme) ---
+if command -v oh-my-posh &>/dev/null; then
+  eval "$(oh-my-posh init zsh --config ~/.config/ohmyposh/takuya.omp.json)"
+fi
+
 # --- Aliases ---
 alias cc='claude --dangerously-skip-permissions'
 alias vim='nvim'
+if command -v eza &>/dev/null; then
+  alias ls='eza --icons'
+  alias ll='eza -l -g --icons'
+  alias la='eza -la -g --icons'
+fi
 
 # --- Claude Code ---
 export CLAUDE_CODE_GIT_BASH_PATH=/usr/bin/git

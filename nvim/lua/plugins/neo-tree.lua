@@ -268,7 +268,7 @@ local function git_toggle_stage(state)
   end
 
   local path = node:get_id()
-  local worktree_root = git.find_existing_worktree(path)
+  local worktree_root = git.get_repository_root(path)
   if not worktree_root then
     return
   end
