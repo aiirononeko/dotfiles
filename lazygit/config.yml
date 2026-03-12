@@ -1,0 +1,13 @@
+customCommands:
+  - key: "C"
+    context: "files"
+    description: "AI commit: Claude でコミットメッセージを自動生成"
+    prompts:
+      - type: "menuFromCommand"
+        title: "AI generated commit message"
+        command: "bash -c 'SCRIPT=$([ -d \"$HOME/Library/Application Support/lazygit\" ] && echo \"$HOME/Library/Application Support/lazygit/ai-commit-msg.sh\" || echo \"$HOME/.config/lazygit/ai-commit-msg.sh\") && bash \"$SCRIPT\"'"
+        filter: "(?P<msg>.*)"
+        valueFormat: "{{ .msg }}"
+        labelFormat: "{{ .msg }}"
+    command: "git commit -m '{{index .PromptResponses 0}}'"
+    loadingText: "Claude がコミットメッセージを生成中..."

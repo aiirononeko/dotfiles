@@ -48,6 +48,42 @@ link_file "${DOTFILES_DIR}/ghostty" "${HOME}/.config/ghostty" "ghostty"
 # --- zsh ---
 link_file "$ZSHRC_SRC" "$ZSHRC_DST" "zshrc"
 
+# --- lazygit config ---
+OS_NAME="$(uname -s)"
+if [ "$OS_NAME" = "Darwin" ]; then
+  LAZYGIT_CONFIG_DIR="${HOME}/Library/Application Support/lazygit"
+else
+  LAZYGIT_CONFIG_DIR="${HOME}/.config/lazygit"
+fi
+mkdir -p "$LAZYGIT_CONFIG_DIR"
+link_file "${DOTFILES_DIR}/lazygit/config.yml" "${LAZYGIT_CONFIG_DIR}/config.yml" "lazygit config"
+link_file "${DOTFILES_DIR}/lazygit/ai-commit-msg.sh" "${LAZYGIT_CONFIG_DIR}/ai-commit-msg.sh" "lazygit ai-commit-msg"
+
+# --- lazygit ---
+install_lazygit() {
+  if command -v lazygit >/dev/null 2>&1; then
+    echo "lazygit is already installed."
+    return
+  fi
+
+  local os="$(uname -s)"
+  if [ "$os" = "Darwin" ]; then
+    if ! command -v brew >/dev/null 2>&1; then
+      echo "Skipping lazygit install: Homebrew is not available."
+      return
+    fi
+    echo "Installing lazygit (macOS)..."
+    brew install lazygit
+  elif [ "$os" = "Linux" ]; then
+    echo "Installing lazygit (Linux)..."
+    LAZYGIT_VERSION=$(curl -fsSL "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+    curl -fsSLo /tmp/lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
+    tar xf /tmp/lazygit.tar.gz -C /tmp lazygit
+    install /tmp/lazygit "${BIN_DIR}/lazygit"
+    rm -f /tmp/lazygit.tar.gz /tmp/lazygit
+  fi
+}
+
 # --- IME tools (Neovim normal-mode force English) ---
 install_macos_ime_tool() {
   if command -v im-select >/dev/null 2>&1; then
@@ -120,6 +156,7 @@ install_wsl_clipboard_tool() {
 }
 
 OS="$(uname -s)"
+install_lazygit
 if [ "$OS" = "Darwin" ]; then
   install_macos_ime_tool
 elif grep -qi microsoft /proc/version 2>/dev/null; then
